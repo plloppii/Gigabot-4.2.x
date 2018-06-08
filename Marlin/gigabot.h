@@ -4,6 +4,13 @@
 // separating them into sections
 //
 
+#define MSG_GIGABOT3 "Gigabot 3+"
+#define GIGA_BUILD_VERSION "4.2.0"
+#undef STRING_DISTRIBUTION_DATE
+#define STRING_DISTRIBUTION_DATE "2018-06-11"
+#undef WEBSITE_URL
+#define WEBSITE_URL "https://re3d.org"
+
 #if SYSTEM_SECTION == INFO
   #undef  STRING_CONFIG_H_AUTHOR
 //  #define STRING_CONFIG_H_AUTHOR "(GB3 V4.x.x - Marlin 1.1.8)"
@@ -27,11 +34,16 @@
   #undef  TEMP_HYSTERESIS
 
   #define TEMP_HYSTERESIS 4       // (degC) range of +/- temperatures considered "close" to the target one
-#endif
+
+  #undef  WATCH_BED_TEMP_PERIOD
+  #define WATCH_BED_TEMP_PERIOD 145            // Seconds
+ #endif
 
 #if SYSTEM_SECTION == SUBSECTION(EXTRUDER, 1)
   #undef  EXTRUDERS
   #define EXTRUDERS 2
+  #define HOTEND_OFFSET_X {0.0, 55.00} // (in mm) for each extruder, offset of the hotend on the X axis
+  #define HOTEND_OFFSET_Y {0.0, 0.00}  // (in mm) for each extruder, offset of the hotend on the Y axis
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(TEMPERATURE, 1)
@@ -91,6 +103,11 @@
   #endif
 #endif
 
+#if SYSTEM_SECTION == SUBSECTION(EXTRUDER, 2)
+  #undef  EXTRUDE_MINTEMP
+  #define EXTRUDE_MINTEMP 120
+#endif
+
 #if SYSTEM_SECTION == SUBSECTION(HOMING, 1)
   #undef  USE_XMIN_PLUG
   #undef  USE_YMIN_PLUG
@@ -104,7 +121,7 @@
   #define USE_ZMIN_PLUG true
   #define USE_XMAX_PLUG false
   #define USE_YMAX_PLUG true
-  #define USE_ZMAX_PLUG false
+  #define USE_ZMAX_PLUG true
 
   #undef  X_MIN_ENDSTOP_INVERTING
   #undef  Y_MIN_ENDSTOP_INVERTING
@@ -124,18 +141,22 @@
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(HOMING, 2)
-  #define Y_HOME_DIR -1
+  #undef Y_HOME_DIR
+  #define Y_HOME_DIR 1
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(HOMING, 3)
   #define MANUAL_X_HOME_POS 0
-  #define MANUAL_Y_HOME_POS 0
+  //#define MANUAL_Y_HOME_POS 0
   #define MANUAL_Z_HOME_POS 0
-//#define MANUAL_Y_HOME_POS Y_MAX_POS
+  #define MANUAL_Y_HOME_POS Y_MAX_POS
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(HOMING, 4)
-  #define HOMING_BUMP_DIVISOR { 5, 5, 5 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
+  #define X_HOME_BUMP_MM 5
+  #define Y_HOME_BUMP_MM 5
+  #undef HOMING_BUMP_DIVISOR
+  #define HOMING_BUMP_DIVISOR { 20, 20, 5 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(MOTION, 1)
@@ -149,7 +170,7 @@
 
   #define DEFAULT_AXIS_STEPS_PER_UNIT   { 118.52, 118.52, 4031.5, 1000 }
   #define DEFAULT_MAX_FEEDRATE          { 150, 150, 4, 60 }
-  #define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 1000 }
+  #define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 10000 }
   #define DEFAULT_ACCELERATION          2000    // X, Y, Z and E acceleration for printing moves
   #define DEFAULT_RETRACT_ACCELERATION  1500  
   #define DEFAULT_XJERK                 15.0
@@ -161,7 +182,7 @@
   #undef  INVERT_Y_DIR
 
   #define INVERT_X_DIR true
-  #define INVERT_Y_DIR true
+  #define INVERT_Y_DIR false
 #endif
 
 #define ADVANCED_PAUSE_FEATURE
@@ -175,6 +196,8 @@
   #define X_BED_SIZE   590
   #define Y_BED_SIZE   610
   #define Z_MAX_POS    609
+
+  #undef FILAMENT_RUNOUT_SENSOR 
 
   #define ADVANCED_PAUSE_FEATURE
   #define NOZZLE_PARK_FEATURE
@@ -216,10 +239,16 @@
   #undef  PREHEAT_2_TEMP_HOTEND
   #undef  PREHEAT_2_TEMP_BED
 
-  #define PREHEAT_1_TEMP_HOTEND 160
+  #define PREHEAT_1_TEMP_HOTEND 200
   #define PREHEAT_1_TEMP_BED     60
-  #define PREHEAT_2_TEMP_HOTEND 220
-  #define PREHEAT_2_TEMP_BED     95
+  #define PREHEAT_2_TEMP_HOTEND 250
+  #define PREHEAT_2_TEMP_BED     115
+  
+  #define PRINTCOUNTER
+  
+  #if ENABLED(NOZZLE_PARK_FEATURE)
+    #define NOZZLE_PARK_POINT { (X_MIN_POS + 500), (Y_MAX_POS - 10), 20 }
+  #endif
 #endif
 
 #if SYSTEM_SECTION == SUBSECTION(LCD, 1)
@@ -232,14 +261,37 @@
   #define SPI_SPEED SPI_QUARTER_SPEED
   #define SD_CHECK_AND_RETRY
   #define VIKI2
+  #define INDIVIDUAL_AXIS_HOMING_MENU
+
+  #if ENABLED(SDSUPPORT)
+    #define SDCARD_RATHERRECENTFIRST
+ //#define SDCARD_SORT_ALPHA
+    #if ENABLED(SDCARD_SORT_ALPHA)
+      #define SDSORT_LIMIT       40
+    #endif
+  #endif //sdsupport
+  
+  #define LCD_INFO_MENU
+  #define LCD_TIMEOUT_TO_STATUS 120000  
+  #define LIN_ADVANCE
 #endif
 
 #define ULTRA_LCD  //general LCD support, also 16x2
     #define DOGLCD  // Support for SPI LCD 128x64 (Controller ST7565R graphic Display Family)
     #define ULTIMAKERCONTROLLER 
       #define LCD_CONTRAST_MIN       0
-      #define LCD_CONTRAST_MAX     75//255
-      #define DEFAULT_LCD_CONTRAST 35//140
+      #define LCD_CONTRAST_MAX     255
+      #define DEFAULT_LCD_CONTRAST 140
+
+#if SYSTEM_SECTION == SUBSECTION(SERIAL_BUF, 1)
+  #undef FILAMENT_CHANGE_UNLOAD_FEEDRATE
+  #undef ADVANCED_PAUSE_PURGE_FEEDRATE
+  #undef PAUSE_PARK_NOZZLE_TIMEOUT 
+
+  #define FILAMENT_CHANGE_UNLOAD_FEEDRATE     15  // (mm/s) Unload filament feedrate. This can be pretty fast.
+ #define ADVANCED_PAUSE_PURGE_FEEDRATE        1.5  // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
+ #define PAUSE_PARK_NOZZLE_TIMEOUT           360  // (seconds) Time limit before the nozzle is turned off for safety.
+#endif
 
 #if SYSTEM_SECTION == SUBSECTION(LCD, 2)
   #if ENABLED(ULTIPANEL)
@@ -308,12 +360,22 @@
   #define AD8495_FORMULA (5.0 * 100.0) / 1024.0 / (OVERSAMPLENR) * (TEMP_SENSOR_AD8495_GAIN) + TEMP_SENSOR_AD8495_OFFSET
 #endif
 
+#if SYSTEM_SECTION == SUBSECTION(EXTRUDER, 4)
+  #undef  INVERT_E0_DIR 
+  #undef  INVERT_E1_DIR
+  
+  #define INVERT_E0_DIR true
+  #define INVERT_E1_DIR false
+#endif
+
 #if SYSTEM_SECTION == SUBSECTION(EXTRUDER, 5)
   #undef  E0_AUTO_FAN_PIN 
   #undef  E1_AUTO_FAN_PIN 
   #define E0_AUTO_FAN_PIN 16
   #define E1_AUTO_FAN_PIN 16
 #endif
+
+#define ENDSTOPS_ALWAYS_ON_DEFAULT
 
 //#if SYSTEM_SECTION == SUBSECTION(EXTRAS, 3)
   #undef  Y_DUAL_STEPPER_DRIVERS
@@ -326,10 +388,11 @@
 
   #define Y_DUAL_STEPPER_DRIVERS
   #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
+	#undef INVERT_Y2_VS_Y_DIR
     #define INVERT_Y2_VS_Y_DIR true   // Set 'true' if Y motors should rotate in opposite directions
     #define Y_DUAL_ENDSTOPS
     #if ENABLED(Y_DUAL_ENDSTOPS)
-      #define Y2_USE_ENDSTOP _YMAX_
+      #define Y2_USE_ENDSTOP _YMIN_
       #define Y_DUAL_ENDSTOPS_ADJUSTMENT  0
     #endif
   #endif
@@ -374,13 +437,14 @@
   #undef  E1_DIR_PIN
   #undef  E1_ENABLE_PIN
 
-  #define E1_STEP_PIN        43
-  #define E1_DIR_PIN         37
-  #define E1_ENABLE_PIN      42
+  #define E1_STEP_PIN        27//43
+  #define E1_DIR_PIN         29//37
+  #define E1_ENABLE_PIN      41//42
 
 
   #define X_MAX_PIN         -1
-  #define Y_MAX_PIN         63
+  #define Y_MAX_PIN         15
+  #define Y_MIN_PIN         14
 
   #undef  BEEPER_PIN
   #define BEEPER_PIN        33         
@@ -410,7 +474,7 @@
   #undef  DIGIPOT_I2C_NUM_CHANNELS
   #define DIGIPOT_I2C_NUM_CHANNELS    7 // AZTEEG_X3_PRO: 8 (Not sure why this was set to 7 at some point)
   #undef  DIGIPOT_I2C_MOTOR_CURRENTS
-  #define DIGIPOT_I2C_MOTOR_CURRENTS  { 2.0, 2.0, 2.0, 1.68, 1.68, 1.8, 1.8 }  //  AZTEEG_X3_PRO
+  #define DIGIPOT_I2C_MOTOR_CURRENTS  { 2.2, 2.2, 2.0, 1.68, 1.68, 1.8, 1.8 }  //  AZTEEG_X3_PRO
 #endif
 
 
