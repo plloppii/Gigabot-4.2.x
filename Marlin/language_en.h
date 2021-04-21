@@ -74,13 +74,16 @@
   #define MSG_PROGRESS_BAR_TEST               _UxGT("Progress Bar Test")
 #endif
 #ifndef MSG_AUTO_HOME
-  #define MSG_AUTO_HOME                       _UxGT("Auto home")
+  #define MSG_AUTO_HOME                       _UxGT("Home All")
 #endif
 #ifndef MSG_AUTO_HOME_X
   #define MSG_AUTO_HOME_X                     _UxGT("Home X")
 #endif
 #ifndef MSG_AUTO_HOME_Y
   #define MSG_AUTO_HOME_Y                     _UxGT("Home Y")
+#endif
+#ifndef MSG_AUTO_HOME_XY
+  #define MSG_AUTO_HOME_XY                     _UxGT("Home XY")
 #endif
 #ifndef MSG_AUTO_HOME_Z
   #define MSG_AUTO_HOME_Z                     _UxGT("Home Z")
@@ -128,7 +131,7 @@
   #define MSG_PREHEAT_1_SETTINGS              MSG_PREHEAT_1 _UxGT(" conf")
 #endif
 #ifndef MSG_PREHEAT_2
-  #define MSG_PREHEAT_2                       _UxGT("Preheat ABS")
+  #define MSG_PREHEAT_2                       _UxGT("Preheat PET")
 #endif
 #ifndef MSG_PREHEAT_2_N
   #define MSG_PREHEAT_2_N                     MSG_PREHEAT_2 _UxGT(" ")
@@ -136,14 +139,41 @@
 #ifndef MSG_PREHEAT_2_ALL
   #define MSG_PREHEAT_2_ALL                   MSG_PREHEAT_2 _UxGT(" All")
 #endif
-#ifndef MSG_PREHEAT_2_END
-  #define MSG_PREHEAT_2_END                   MSG_PREHEAT_2 _UxGT(" End")
-#endif
 #ifndef MSG_PREHEAT_2_BEDONLY
   #define MSG_PREHEAT_2_BEDONLY               MSG_PREHEAT_2 _UxGT(" Bed")
 #endif
-#ifndef MSG_PREHEAT_2_SETTINGS
-  #define MSG_PREHEAT_2_SETTINGS              MSG_PREHEAT_2 _UxGT(" conf")
+#ifndef MSG_PREHEAT_2_END
+  #define MSG_PREHEAT_2_END                   MSG_PREHEAT_2 _UxGT(" End")
+#endif
+#ifndef MSG_PREHEAT_3
+  #define MSG_PREHEAT_3                       _UxGT("Preheat PC")
+#endif
+#ifndef MSG_PREHEAT_3_N
+  #define MSG_PREHEAT_3_N                     MSG_PREHEAT_3 _UxGT(" ")
+#endif
+#ifndef MSG_PREHEAT_3_ALL
+  #define MSG_PREHEAT_3_ALL                   MSG_PREHEAT_3 _UxGT(" All")
+#endif
+#ifndef MSG_PREHEAT_3_BEDONLY
+  #define MSG_PREHEAT_3_BEDONLY               MSG_PREHEAT_3 _UxGT(" Bed")
+#endif
+#ifndef MSG_PREHEAT_3_SETTINGS
+  #define MSG_PREHEAT_3_SETTINGS              MSG_PREHEAT_3 _UxGT(" conf")
+#endif
+#ifndef MSG_PREHEAT_4
+  #define MSG_PREHEAT_4                       _UxGT("Preheat TPU")
+#endif
+#ifndef MSG_PREHEAT_4_N
+  #define MSG_PREHEAT_4_N                     MSG_PREHEAT_4 _UxGT(" ")
+#endif
+#ifndef MSG_PREHEAT_4_ALL
+  #define MSG_PREHEAT_4_ALL                   MSG_PREHEAT_4 _UxGT(" All")
+#endif
+#ifndef MSG_PREHEAT_4_BEDONLY
+  #define MSG_PREHEAT_4_BEDONLY               MSG_PREHEAT_4 _UxGT(" Bed")
+#endif
+#ifndef MSG_PREHEAT_4_SETTINGS
+  #define MSG_PREHEAT_4_SETTINGS              MSG_PREHEAT_4 _UxGT(" conf")
 #endif
 #ifndef MSG_COOLDOWN
   #define MSG_COOLDOWN                        _UxGT("Cooldown")
@@ -630,6 +660,21 @@
 #ifndef MSG_ADVANCE_K
   #define MSG_ADVANCE_K                       _UxGT("Advance K")
 #endif
+#ifndef MSG_FILAMENT_RUNOUT
+  #define MSG_FILAMENT_RUNOUT				  _UxGT("Filament Runout")
+#endif
+#ifndef MSG_FILAMENT_M600
+  #define MSG_FILAMENT_M600					  _UxGT("Pause for change")
+#endif
+#ifndef MSG_FILAMENT_M601
+  #define MSG_FILAMENT_M601					  _UxGT("Continuous printing")
+#endif
+#ifndef MSG_RUNOUT_OPTION_HEADER1
+  #define MSG_RUNOUT_OPTION_HEADER1			  _UxGT("Select a Filament")
+#endif
+#ifndef MSG_RUNOUT_OPTION_HEADER2
+  #define MSG_RUNOUT_OPTION_HEADER2			  _UxGT("Runout Feature")
+#endif
 #ifndef MSG_CONTRAST
   #define MSG_CONTRAST                        _UxGT("LCD contrast")
 #endif
@@ -904,7 +949,7 @@
   #define MSG_INFO_BOARD_MENU                 _UxGT("Board Info")
 #endif
 #ifndef MSG_INFO_THERMISTOR_MENU
-  #define MSG_INFO_THERMISTOR_MENU            _UxGT("Thermistors")
+  #define MSG_INFO_THERMISTOR_MENU            _UxGT("Thermocouples")
 #endif
 #ifndef MSG_INFO_EXTRUDERS
   #define MSG_INFO_EXTRUDERS                  _UxGT("Extruders")

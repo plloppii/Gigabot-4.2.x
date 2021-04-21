@@ -4035,7 +4035,7 @@ inline void gcode_G4() {
  *  Z   Home to the Z endstop
  *
  */
-inline void gcode_G28(const bool always_home_all) {
+inline void gcode_G28(const bool always_home_all, bool override_x=false, bool override_y=false) {
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4069,7 +4069,9 @@ inline void gcode_G28(const bool always_home_all) {
     #if DISABLED(DELTA) || ENABLED(DELTA_HOME_TO_SAFE_ZONE)
       const uint8_t old_tool_index = active_extruder;
     #endif
-    tool_change(0, 0, true);
+	if(old_tool_index != 0){
+		tool_change(0, 0, true);
+	}
   #endif
 
   #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
@@ -4089,8 +4091,8 @@ inline void gcode_G28(const bool always_home_all) {
 
   #else // NOT DELTA
 
-    const bool homeX = always_home_all || parser.seen('X'),
-               homeY = always_home_all || parser.seen('Y'),
+    const bool homeX = always_home_all || parser.seen('X') || override_x,
+               homeY = always_home_all || parser.seen('Y') || override_y,
                homeZ = always_home_all || parser.seen('Z'),
                home_all = (!homeX && !homeY && !homeZ) || (homeX && homeY && homeZ);
 
@@ -4217,7 +4219,10 @@ inline void gcode_G28(const bool always_home_all) {
     #else
       #define NO_FETCH true
     #endif
-    tool_change(old_tool_index, 0, NO_FETCH);
+	if(active_extruder != old_tool_index){
+		tool_change(old_tool_index,0, NO_FETCH);
+		//active_extruder = old_tool_index;
+	}
   #endif
 
   lcd_refresh();
@@ -6596,7 +6601,7 @@ inline void gcode_M17() {
    * Returns 'true' if load was completed, 'false' for abort
    */
   static bool load_filament(const float &slow_load_length=0, const float &fast_load_length=0, const float &purge_length=0, const int8_t max_beep_count=0,
-                            const bool show_lcd=false, const bool pause_for_user=false,
+                            const bool show_lcd=false, const bool pause_for_user=false, const bool pauseoverride = false,
                             const AdvancedPauseMode mode=ADVANCED_PAUSE_MODE_PAUSE_PRINT
   ) {
     #if DISABLED(ULTIPANEL)
@@ -6672,39 +6677,50 @@ inline void gcode_M17() {
       wait_for_user = false;
 
     #else
+		if(pauseoverride){
+			if (purge_length > 0) {
+			  // "Wait for filament purge"
+			  #if ENABLED(ULTIPANEL)
+				if (show_lcd)
+				  lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_PURGE, mode);
+			  #endif
+				  // Extrude filament to get into hotend
+			  do_pause_e_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
+			}
+		}
+		else{
+			  do {
+				if (purge_length > 0) {
+				  // "Wait for filament purge"
+				  #if ENABLED(ULTIPANEL)
+					if (show_lcd)
+					  lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_PURGE, mode);
+				  #endif
 
-      do {
-        if (purge_length > 0) {
-          // "Wait for filament purge"
-          #if ENABLED(ULTIPANEL)
-            if (show_lcd)
-              lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_PURGE, mode);
-          #endif
+				  // Extrude filament to get into hotend
+				  do_pause_e_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
+				}
 
-          // Extrude filament to get into hotend
-          do_pause_e_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
-        }
+				// Show "Purge More" / "Resume" menu and wait for reply
+				#if ENABLED(ULTIPANEL)
+				  if (show_lcd) {
+					KEEPALIVE_STATE(PAUSED_FOR_USER);
+					wait_for_user = false;
+					lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION, mode);
+					while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+					KEEPALIVE_STATE(IN_HANDLER);
+				  }
+				#endif
 
-        // Show "Purge More" / "Resume" menu and wait for reply
-        #if ENABLED(ULTIPANEL)
-          if (show_lcd) {
-            KEEPALIVE_STATE(PAUSED_FOR_USER);
-            wait_for_user = false;
-            lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION, mode);
-            while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-            KEEPALIVE_STATE(IN_HANDLER);
-          }
-        #endif
-
-        // Keep looping if "Purge More" was selected
-      } while (
-        #if ENABLED(ULTIPANEL)
-          show_lcd && advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE
-        #else
-          0
-        #endif
-      );
-
+				// Keep looping if "Purge More" was selected
+			  } while (
+				#if ENABLED(ULTIPANEL)
+				  show_lcd && advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE
+				#else
+				  0
+				#endif
+				);
+		}
     #endif
 
     return true;
@@ -6948,7 +6964,7 @@ inline void gcode_M17() {
    * - Send host action for resume, if configured
    * - Resume the current SD print job, if any
    */
-  static void resume_print(const float &slow_load_length=0, const float &fast_load_length=0, const float &purge_length=ADVANCED_PAUSE_PURGE_LENGTH, const int8_t max_beep_count=0) {
+  static void resume_print(const float &slow_load_length=0, const float &fast_load_length=0, const float &purge_length=ADVANCED_PAUSE_PURGE_LENGTH, const int8_t max_beep_count=0, const bool pauseoverride = false) {
     if (!did_pause_print) return;
 
     // Re-enable the heaters if they timed out
@@ -6960,7 +6976,7 @@ inline void gcode_M17() {
 
     if (nozzle_timed_out || thermalManager.hotEnoughToExtrude(active_extruder)) {
       // Load the new filament
-      load_filament(slow_load_length, fast_load_length, purge_length, max_beep_count, true, nozzle_timed_out);
+      load_filament(slow_load_length, fast_load_length, purge_length, max_beep_count, true, nozzle_timed_out, pauseoverride);
     }
 
     #if ENABLED(ULTIPANEL)
@@ -6971,7 +6987,7 @@ inline void gcode_M17() {
     #if ENABLED(HOME_AFTER_FILAMENT_CHANGE)
   //    if (axis_unhomed_error())
       {
-        gcode_G28(false);
+        gcode_G28(false,true,true);
         //_enqueuecommand("G28 X Y");
  //           do_blocking_move_to_xy(-1000, -1000, NOZZLE_PARK_XY_FEEDRATE);
   //      HOMEAXIS(X);
@@ -10508,7 +10524,7 @@ inline void gcode_M502() {
 
     #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
       // Don't allow filament change without homing first
-      if (axis_unhomed_error()) home_all_axes();
+      if (axis_unhomed_error()) gcode_G28(false,true,true);
     #endif
 
     #if EXTRUDERS > 1
@@ -10567,7 +10583,7 @@ inline void gcode_M502() {
     #endif
       resume_print(slow_load_length, fast_load_length, ADVANCED_PAUSE_PURGE_LENGTH, beep_count);
     }
-
+	
     #if EXTRUDERS > 1
       // Restore toolhead if it was changed
       if (active_extruder_before_filament_change != active_extruder)
@@ -10577,7 +10593,126 @@ inline void gcode_M502() {
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
   }
+  
+  /**
+   * M601: Continuous Printing After Filament Runout
+   *
+   * Once filament detector is triggered, retract, and move to parked position
+   * Retract, wait for cool, then unload filament
+   * Cool nozzle down by 50 degrees, tool change to the other nozzle and heat nozzle up
+   * Wait for nozzle to reach safe temperature and purge filament
+   * Resume print automatically
+   *
+   *  Default values are used for omitted arguments.
+   */
+   
+   inline void gcode_M601() {
+	   point_t park_point = NOZZLE_PARK_POINT;
+	   
+	   const int16_t temp = thermalManager.target_temperature[active_extruder];
+	   
+	   if (get_target_extruder_from_command(601)) return;
+	   
+	   //SERIAL_ECHOLNPGM("HOTEND TEMPERATURE: ", temp);
+		
+		#if HOTENDS > 1 && DISABLED(DUAL_X_CARRIAGE) && DISABLED(DELTA)
+		  park_point.x += (active_extruder ? hotend_offset[X_AXIS][active_extruder] : 0);
+		  park_point.y += (active_extruder ? hotend_offset[Y_AXIS][active_extruder] : 0);
+		#endif
 
+		// Unload filament
+		const float unload_length = -FABS(parser.seen('U') ? parser.value_axis_units(E_AXIS) :
+															 filament_change_unload_length[active_extruder]);
+
+		// Slow load filament
+		constexpr float slow_load_length = FILAMENT_CHANGE_SLOW_LOAD_LENGTH;
+
+		// Fast load filament
+		const float fast_load_length = FABS(parser.seen('L') ? parser.value_axis_units(E_AXIS) :
+														  filament_change_load_length[active_extruder]);
+
+		const int beep_count = parser.intval('B',
+		  #ifdef FILAMENT_CHANGE_ALERT_BEEPS
+			FILAMENT_CHANGE_ALERT_BEEPS
+		  #else
+			-1
+		  #endif
+		);
+	   
+	   const bool job_running = print_job_timer.isRunning();
+	   
+		// Indicate that the printer is paused
+		++did_pause_print;
+
+		// Pause the print job and timer
+		#if ENABLED(SDSUPPORT)
+		  if (card.sdprinting) {
+			card.pauseSDPrint();
+			++did_pause_print; // Indicate SD pause also
+		  }
+		#endif
+		print_job_timer.pause();
+	   
+	   COPY(resume_position, current_position);
+	   
+	   stepper.synchronize();
+	   
+	   const float retract1 = -3;
+	   // Initial retract before move to filament change position
+		if (retract1 && thermalManager.hotEnoughToExtrude(active_extruder))
+			do_pause_e_move(retract1, PAUSE_PARK_RETRACT_FEEDRATE);
+		
+	   Nozzle::park(2, park_point);
+	   
+		// Retract filament
+		do_pause_e_move(-FILAMENT_UNLOAD_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+
+		// Wait for filament to cool
+		safe_delay(FILAMENT_UNLOAD_DELAY);
+		
+	    // Unload filament
+		#if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
+			const float saved_acceleration = planner.retract_acceleration;
+			planner.retract_acceleration = FILAMENT_CHANGE_UNLOAD_ACCEL;
+		#endif
+
+		do_pause_e_move(unload_length, FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+
+		#if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
+			planner.retract_acceleration = saved_acceleration;
+		#endif
+	   
+	   thermalManager.setTargetHotend( temp-50 , active_extruder);
+	   
+	   const int8_t nexttool = (active_extruder ? 0 : 1);
+	   
+	   tool_change(nexttool, 0 , true);
+	   
+	   thermalManager.setTargetHotend(temp, active_extruder);
+
+        HOTEND_LOOP() thermalManager.reset_heater_idle_timer(e);
+
+        // Wait for the heaters to reach the target temperatures
+        ensure_safe_temperature();
+	   
+	   //while( thermalManager.isHeatingHotend(active_extruder)) ;
+	   
+	   resume_print(slow_load_length, fast_load_length, ADVANCED_PAUSE_PURGE_LENGTH, beep_count, true);
+	   
+	   if (job_running) print_job_timer.start();
+	   
+	   //unheat active extruder
+	   
+	   //change toolhead
+	   
+	   //heat active extruder
+	   
+	   //start printing with other tool head. 
+   }
+   
+   
+   
+   
   /**
    * M603: Configure filament change
    *
@@ -11849,7 +11984,7 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool n
           #endif
 
           const float xdiff = hotend_offset[X_AXIS][tmp_extruder] - hotend_offset[X_AXIS][active_extruder],
-                      ydiff = hotend_offset[Y_AXIS][tmp_extruder] - hotend_offset[Y_AXIS][active_extruder];
+                    ydiff = hotend_offset[Y_AXIS][tmp_extruder] - hotend_offset[Y_AXIS][active_extruder];
 
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
@@ -11899,7 +12034,11 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool n
             if (DEBUGGING(LEVELING)) DEBUG_POS("Move back", destination);
           #endif
           // Move back to the original (or tweaked) position
-          do_blocking_move_to(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS]);
+		  //active_extruder == 0 || (active_extruder == 1 && current_position[X_AXIS] > hotend_offset[X_AXIS][active_extruder]
+		  if(READ(X_MIN_PIN)){
+			do_blocking_move_to(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS]);
+		  }
+		  do_blocking_move_to_z(destination[Z_AXIS]);
         }
         #if ENABLED(SWITCHING_NOZZLE)
           else {
@@ -12363,6 +12502,7 @@ void process_parsed_command() {
 
       #if ENABLED(ADVANCED_PAUSE_FEATURE)
         case 600: gcode_M600(); break;                            // M600: Pause for Filament Change
+		case 601: gcode_M601(); break;
         case 603: gcode_M603(); break;                            // M603: Configure Filament Change
       #endif
 
@@ -14429,6 +14569,7 @@ void setup() {
  *  - Call LCD update
  */
 void loop() {
+
 
   #if ENABLED(SDSUPPORT)
 
